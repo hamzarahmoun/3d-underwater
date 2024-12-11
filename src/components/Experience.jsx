@@ -3,15 +3,63 @@ import { Environment, OrbitControls, SoftShadows } from "@react-three/drei";
 import { useAtom } from "jotai";
 import { Boids } from "./Boids";
 import { themeAtom, THEMES } from "./UI";
+import { useControls } from "leva";
+import { useEffect, useState } from "react";
+import { DoubleSide } from "three";
 
 export const Experience = () => {
   const [theme] = useAtom(themeAtom);
+  const boundaries = useControls(
+    "Boundaries",
+    {
+      debug: true,
+      x: { value: 12, min: 0, max: 40 },
+      y: { value: 8, min: 0, max: 40 },
+      z: { value: 20, min: 0, max: 40 },
+    },
+    { collapsed: true }
+  );
+  const [size, setSize] = useState([window.innerWidth, window.innerHeight]);
 
+  const scaleX = Math.max(0.5, size[0] / 1920);
+  const scaleY = Math.max(0.5, size[1] / 1080);
+  const responsiveBoundaries = {
+    x: boundaries.x * scaleX,
+    y: boundaries.y * scaleY,
+    z: boundaries.z,
+  };
+  useEffect(() => {
+    let timeout;
+    function updateSize() {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setSize([window.innerWidth, window.innerHeight]);
+      }, 50);
+    }
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
   return (
     <>
-      <OrbitControls />
+          <OrbitControls />
 
-      <Boids />
+    <Boids boundaries={responsiveBoundaries} />
+      <mesh visible={boundaries.debug}>
+        <boxGeometry
+          args={[
+            responsiveBoundaries.x,
+            responsiveBoundaries.y,
+            responsiveBoundaries.z,
+          ]}
+        />
+        <meshStandardMaterial
+          color="orange"
+          transparent
+          opacity={0.5}
+          side={DoubleSide}
+        />
+      </mesh>
+
 
       {/* LIGHTS */}
       <SoftShadows size={15} focus={1.5} samples={12} />
