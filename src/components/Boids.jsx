@@ -22,6 +22,14 @@ export const Boids = ({}) => {
       },
       { collapsed: true }
     );
+    const { threeD, ALIGNEMENT, AVOIDANCE, COHESION } = useControls(
+      "Boid Rules",
+      {
+        threeD: { value: true },
+       
+      },
+      { collapsed: true }
+    );
   return (
     <>
       <Boid
