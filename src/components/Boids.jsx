@@ -6,8 +6,9 @@ import { Vector3 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { themeAtom, THEMES } from "./UI";
 import { useControls } from "leva";
+import { randFloat, randInt } from "three/src/math/MathUtils.js";
 
-export const Boids = ({}) => {
+export const Boids = ({ boundaries }) => {
   const [theme] = useAtom(themeAtom);
   const { NB_BOIDS, MIN_SCALE, MAX_SCALE, MIN_SPEED, MAX_SPEED, MAX_STEERING } =
     useControls(
@@ -30,15 +31,31 @@ export const Boids = ({}) => {
       },
       { collapsed: true }
     );
-  return (
-    <>
+    const boids = useMemo(() => {
+      return new Array(NB_BOIDS).fill().map((_, i) => ({
+        model: THEMES[theme].models[randInt(0, THEMES[theme].models.length - 1)],
+        position: new Vector3(
+          randFloat(-boundaries.x / 2, boundaries.x / 2),
+          randFloat(-boundaries.y / 2, boundaries.y / 2),
+          threeD ? randFloat(-boundaries.z / 2, boundaries.z / 2) : 0
+        ),
+        velocity: new Vector3(0, 0, 0),
+        wander: randFloat(0, Math.PI * 2),
+        scale: randFloat(MIN_SCALE, MAX_SCALE),
+      }));
+    }, [NB_BOIDS, boundaries, theme, MIN_SCALE, MAX_SCALE, threeD]);
+  return  boids.map((boid, index) => (
       <Boid
-        position={new Vector3(0, 0, 0)}
-        model={THEMES[theme].models[0]}
+        key={index + boid.model}
+        position={boid.position}
+        model={boid.model}
+        scale={boid.scale}
+        velocity={boid.velocity}
         animation={"Fish_Armature|Swimming_Fast"}
+        
       />
-    </>
-  );
+    ));
+  
 };
 
 const Boid = ({ position, model, animation, ...props }) => {
