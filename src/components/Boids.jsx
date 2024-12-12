@@ -7,6 +7,7 @@ import { SkeletonUtils } from "three-stdlib";
 import { themeAtom, THEMES } from "./UI";
 import { useControls } from "leva";
 import { randFloat, randInt } from "three/src/math/MathUtils.js";
+const wander = new Vector3();
 
 export const Boids = ({ boundaries }) => {
   const [theme] = useAtom(themeAtom);
@@ -44,6 +45,15 @@ export const Boids = ({ boundaries }) => {
         scale: randFloat(MIN_SCALE, MAX_SCALE),
       }));
     }, [NB_BOIDS, boundaries, theme, MIN_SCALE, MAX_SCALE, threeD]);
+    const { WANDER_RADIUS, WANDER_STRENGTH, WANDER_CIRCLE } = useControls(
+      "Wander",
+      {
+        WANDER_CIRCLE: false,
+        WANDER_RADIUS: { value: 5, min: 1, max: 10, step: 1 },
+        WANDER_STRENGTH: { value: 2, min: 0, max: 10, step: 1 },
+      },
+      { collapsed: true }
+    );
   return  boids.map((boid, index) => (
       <Boid
         key={index + boid.model}
@@ -52,13 +62,16 @@ export const Boids = ({ boundaries }) => {
         scale={boid.scale}
         velocity={boid.velocity}
         animation={"Fish_Armature|Swimming_Fast"}
+        wanderCircle={WANDER_CIRCLE}
+        wanderRadius={WANDER_RADIUS / boid.scale}
         
       />
     ));
   
 };
 
-const Boid = ({ position, model, animation, ...props }) => {
+const Boid = ({ position, model, animation,  wanderCircle,
+  wanderRadius, ...props }) => {
   const { scene, animations } = useGLTF(`/models/${model}.glb`);
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const group = useRef();
@@ -81,6 +94,10 @@ const Boid = ({ position, model, animation, ...props }) => {
   return (
     <group {...props} ref={group} position={position}>
       <primitive object={clone} rotation-y={Math.PI / 2} />
+      <mesh visible={wanderCircle}>
+        <sphereGeometry args={[wanderRadius, 32]} />
+        <meshBasicMaterial color={"red"} wireframe />
+      </mesh>
     </group>
   );
 };
