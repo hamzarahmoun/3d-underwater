@@ -12,6 +12,7 @@ const wander = new Vector3();
 const horizontalWander = new Vector3();
 const limits = new Vector3();
 const steering = new Vector3();
+const alignment = new Vector3();
 
 export const Boids = ({ boundaries }) => {
   const [theme] = useAtom(themeAtom);
@@ -58,6 +59,15 @@ export const Boids = ({ boundaries }) => {
     },
     { collapsed: true }
   );
+  const { ALIGN_RADIUS, ALIGN_STRENGTH, ALIGN_CIRCLE } = useControls(
+    "Alignment",
+    {
+      ALIGN_CIRCLE: false,
+      ALIGN_RADIUS: { value: 1.2, min: 0, max: 10, step: 0.1 },
+      ALIGN_STRENGTH: { value: 4, min: 0, max: 10, step: 1 },
+    },
+    { collapsed: true }
+  );
   useFrame((_, delta) => {
     for (let i = 0; i < boids.length; i++) {
       const boid = boids[i];
@@ -79,8 +89,25 @@ export const Boids = ({ boundaries }) => {
         Math.sin(boid.wander) * WANDER_RADIUS
       );
 
+
       horizontalWander.normalize();
       horizontalWander.multiplyScalar(WANDER_STRENGTH);
+       // Loop through all boids
+       for (let b = 0; b < boids.length; b++) {
+        if (b === i) {
+          // skip to get only other boids
+          continue;
+        }
+        const other = boids[b];
+        let d = boid.position.distanceTo(other.position);
+        // ALIGNEMENT
+        if (d > 0 && d < ALIGN_RADIUS) {
+          const copy = other.velocity.clone();
+          copy.normalize();
+          copy.divideScalar(d);
+          alignment.add(copy);
+        }
+      };
       //limites
       if (Math.abs(boid.position.x) + 1 > boundaries.x / 2) {
         limits.x = -boid.position.x;
@@ -121,6 +148,8 @@ export const Boids = ({ boundaries }) => {
       animation={"Fish_Armature|Swimming_Fast"}
       wanderCircle={WANDER_CIRCLE}
       wanderRadius={WANDER_RADIUS / boid.scale}
+      alignCircle={ALIGN_CIRCLE}
+      alignRadius={ALIGN_RADIUS / boid.scale}
 
     />
   ));
@@ -128,7 +157,8 @@ export const Boids = ({ boundaries }) => {
 };
 
 const Boid = ({ position, model,  velocity,animation, wanderCircle,
-  wanderRadius, ...props }) => {
+  wanderRadius, alignCircle,
+  alignRadius, ...props }) => {
   const { scene, animations } = useGLTF(`/models/${model}.glb`);
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const group = useRef();
@@ -160,6 +190,10 @@ const Boid = ({ position, model,  velocity,animation, wanderCircle,
       <mesh visible={wanderCircle}>
         <sphereGeometry args={[wanderRadius, 32]} />
         <meshBasicMaterial color={"red"} wireframe />
+      </mesh>
+      <mesh visible={alignCircle}>
+        <sphereGeometry args={[alignRadius, 32]} />
+        <meshBasicMaterial color={"green"} wireframe />
       </mesh>
     </group>
   );
