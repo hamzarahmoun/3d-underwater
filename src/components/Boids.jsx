@@ -13,6 +13,7 @@ const horizontalWander = new Vector3();
 const limits = new Vector3();
 const steering = new Vector3();
 const alignment = new Vector3();
+const avoidance = new Vector3();
 
 export const Boids = ({ boundaries }) => {
   const [theme] = useAtom(themeAtom);
@@ -33,6 +34,8 @@ export const Boids = ({ boundaries }) => {
     "Boid Rules",
     {
       threeD: { value: true },
+      ALIGNEMENT: { value: true },
+      AVOIDANCE: { value: true },
 
     },
     { collapsed: true }
@@ -65,6 +68,15 @@ export const Boids = ({ boundaries }) => {
       ALIGN_CIRCLE: false,
       ALIGN_RADIUS: { value: 1.2, min: 0, max: 10, step: 0.1 },
       ALIGN_STRENGTH: { value: 4, min: 0, max: 10, step: 1 },
+    },
+    { collapsed: true }
+  );
+  const { AVOID_RADIUS, AVOID_STRENGTH, AVOID_CIRCLE } = useControls(
+    "Avoidance",
+    {
+      AVOID_CIRCLE: false,
+      AVOID_RADIUS: { value: 0.8, min: 0, max: 2 },
+      AVOID_STRENGTH: { value: 2, min: 0, max: 10, step: 1 },
     },
     { collapsed: true }
   );
@@ -107,6 +119,12 @@ export const Boids = ({ boundaries }) => {
           copy.divideScalar(d);
           alignment.add(copy);
         }
+        // AVOID
+        if (d > 0 && d < AVOID_RADIUS) {
+          const diff = boid.position.clone().sub(other.position);
+          diff.normalize();
+          diff.divideScalar(d);
+        }
       };
       //limites
       if (Math.abs(boid.position.x) + 1 > boundaries.x / 2) {
@@ -126,6 +144,21 @@ export const Boids = ({ boundaries }) => {
       //forces
       steering.add(limits);
       steering.add(wander);
+      if (threeD) {
+        steering.add(horizontalWander);
+      }
+
+      if (ALIGNEMENT) {
+        alignment.normalize();
+        alignment.multiplyScalar(ALIGN_STRENGTH);
+        steering.add(alignment);
+      }
+
+      if (AVOIDANCE) {
+        avoidance.normalize();
+        avoidance.multiplyScalar(AVOID_STRENGTH);
+        steering.add(avoidance);
+      }
 
       steering.clampLength(0, MAX_STEERING * delta);
       boid.velocity.add(steering);
@@ -150,7 +183,9 @@ export const Boids = ({ boundaries }) => {
       wanderRadius={WANDER_RADIUS / boid.scale}
       alignCircle={ALIGN_CIRCLE}
       alignRadius={ALIGN_RADIUS / boid.scale}
-
+      
+      avoidCircle={AVOID_CIRCLE}
+      avoidRadius={AVOID_RADIUS / boid.scale}
     />
   ));
 
@@ -158,7 +193,8 @@ export const Boids = ({ boundaries }) => {
 
 const Boid = ({ position, model,  velocity,animation, wanderCircle,
   wanderRadius, alignCircle,
-  alignRadius, ...props }) => {
+  alignRadius, avoidCircle,
+  avoidRadius, ...props }) => {
   const { scene, animations } = useGLTF(`/models/${model}.glb`);
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const group = useRef();
@@ -194,6 +230,10 @@ const Boid = ({ position, model,  velocity,animation, wanderCircle,
       <mesh visible={alignCircle}>
         <sphereGeometry args={[alignRadius, 32]} />
         <meshBasicMaterial color={"green"} wireframe />
+      </mesh>
+      <mesh visible={avoidCircle}>
+        <sphereGeometry args={[avoidRadius, 32]} />
+        <meshBasicMaterial color={"blue"} wireframe />
       </mesh>
     </group>
   );
