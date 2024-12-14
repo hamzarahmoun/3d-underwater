@@ -1,11 +1,18 @@
-import { Environment, OrbitControls, SoftShadows } from "@react-three/drei";
-
+import {
+  Center,
+  Environment,
+  Float,
+  MeshTransmissionMaterial,
+  OrbitControls,
+  SoftShadows,
+  Text3D,
+} from "@react-three/drei";
 import { useAtom } from "jotai";
-import { Boids } from "./Boids";
-import { themeAtom, THEMES } from "./UI";
 import { useControls } from "leva";
 import { useEffect, useState } from "react";
 import { DoubleSide } from "three";
+import { Boids } from "./Boids";
+import { themeAtom, THEMES } from "./UI";
 
 export const Experience = () => {
   const [theme] = useAtom(themeAtom);
@@ -78,6 +85,66 @@ export const Experience = () => {
         shadow-camera-bottom={-10}
         shadow-camera-near={0.1}
       />
+      <group key={theme + scaleX}>
+        <Float
+          position-y={0.5 * scaleX}
+          floatIntensity={2 * scaleX}
+          rotationIntensity={2}
+        >
+          <Center>
+            <Text3D
+              castShadow
+              bevelEnabled
+              font="/fonts/Poppins Black_Regular.json"
+              smooth={1}
+              scale={0.008 * scaleX}
+              size={80}
+              height={4}
+              curveSegments={10}
+              bevelThickness={20}
+              bevelSize={2}
+              bevelOffset={0}
+              bevelSegments={5}
+            >
+              {THEMES[theme].title}
+              <MeshTransmissionMaterial
+                clearcoat={1}
+                samples={3}
+                thickness={40}
+                chromaticAberration={0.25}
+                anisotropy={0.4}
+              />
+            </Text3D>
+          </Center>
+        </Float>
+        <Float position-y={-0.5 * scaleX} speed={3} floatIntensity={1 * scaleX}>
+          <Center>
+            <Text3D
+              castShadow
+              bevelEnabled
+              font="/fonts/Poppins Black_Regular.json"
+              smooth={1}
+              scale={0.008 * scaleX}
+              size={80}
+              height={4}
+              curveSegments={10}
+              bevelThickness={20}
+              bevelSize={2}
+              bevelOffset={0}
+              bevelSegments={5}
+            >
+              {THEMES[theme].subtitle}
+              <MeshTransmissionMaterial
+                clearcoat={1}
+                samples={3}
+                thickness={40}
+                chromaticAberration={0.25}
+                anisotropy={0.4}
+              />
+            </Text3D>
+          </Center>
+        </Float>
+      </group>
       <hemisphereLight
         intensity={1.35}
         color={THEMES[theme].skyColor}
