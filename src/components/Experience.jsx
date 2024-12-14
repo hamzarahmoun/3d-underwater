@@ -23,6 +23,7 @@ export const Experience = () => {
       x: { value: 12, min: 0, max: 40 },
       y: { value: 8, min: 0, max: 40 },
       z: { value: 20, min: 0, max: 40 },
+      
     },
     { collapsed: true }
   );
