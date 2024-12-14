@@ -14,6 +14,7 @@ const limits = new Vector3();
 const steering = new Vector3();
 const alignment = new Vector3();
 const avoidance = new Vector3();
+const cohesion = new Vector3();
 
 export const Boids = ({ boundaries }) => {
   const [theme] = useAtom(themeAtom);
@@ -80,6 +81,15 @@ export const Boids = ({ boundaries }) => {
     },
     { collapsed: true }
   );
+  const { COHESION_RADIUS, COHESION_STRENGTH, COHESION_CIRCLE } = useControls(
+    "Cohesion",
+    {
+      COHESION_CIRCLE: false,
+      COHESION_RADIUS: { value: 1.22, min: 0, max: 2 },
+      COHESION_STRENGTH: { value: 4, min: 0, max: 10, step: 1 },
+    },
+    { collapsed: true }
+  );
   useFrame((_, delta) => {
     for (let i = 0; i < boids.length; i++) {
       const boid = boids[i];
@@ -104,12 +114,20 @@ export const Boids = ({ boundaries }) => {
 
       horizontalWander.normalize();
       horizontalWander.multiplyScalar(WANDER_STRENGTH);
+       // RESET FORCES
+       limits.multiplyScalar(0);
+       steering.multiplyScalar(0);
+       alignment.multiplyScalar(0);
+       avoidance.multiplyScalar(0);
+       cohesion.multiplyScalar(0);
        // Loop through all boids
+       let totalCohesion = 0;
        for (let b = 0; b < boids.length; b++) {
         if (b === i) {
           // skip to get only other boids
           continue;
         }
+
         const other = boids[b];
         let d = boid.position.distanceTo(other.position);
         // ALIGNEMENT
@@ -125,6 +143,11 @@ export const Boids = ({ boundaries }) => {
           diff.normalize();
           diff.divideScalar(d);
         }
+          // COHESION
+          if (d > 0 && d < COHESION_RADIUS) {
+            cohesion.add(other.position);
+            totalCohesion++;
+          }
       };
       //limites
       if (Math.abs(boid.position.x) + 1 > boundaries.x / 2) {
@@ -139,8 +162,12 @@ export const Boids = ({ boundaries }) => {
         limits.z = -boid.position.z;
         boid.wander += Math.PI;
       }
+      
+
       limits.normalize();
       limits.multiplyScalar(50);
+      
+
       //forces
       steering.add(limits);
       steering.add(wander);
@@ -159,7 +186,13 @@ export const Boids = ({ boundaries }) => {
         avoidance.multiplyScalar(AVOID_STRENGTH);
         steering.add(avoidance);
       }
-
+      if (COHESION && totalCohesion > 0) {
+        cohesion.divideScalar(totalCohesion);
+        cohesion.sub(boid.position);
+        cohesion.normalize();
+        cohesion.multiplyScalar(COHESION_STRENGTH);
+        steering.add(cohesion);
+      }
       steering.clampLength(0, MAX_STEERING * delta);
       boid.velocity.add(steering);
       boid.velocity.clampLength(
@@ -186,6 +219,8 @@ export const Boids = ({ boundaries }) => {
       
       avoidCircle={AVOID_CIRCLE}
       avoidRadius={AVOID_RADIUS / boid.scale}
+      cohesionCircle={COHESION_CIRCLE}
+      cohesionRadius={COHESION_RADIUS / boid.scale}
     />
   ));
 
@@ -194,7 +229,8 @@ export const Boids = ({ boundaries }) => {
 const Boid = ({ position, model,  velocity,animation, wanderCircle,
   wanderRadius, alignCircle,
   alignRadius, avoidCircle,
-  avoidRadius, ...props }) => {
+  avoidRadius,  cohesionCircle,
+  cohesionRadius,...props }) => {
   const { scene, animations } = useGLTF(`/models/${model}.glb`);
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const group = useRef();
@@ -234,6 +270,10 @@ const Boid = ({ position, model,  velocity,animation, wanderCircle,
       <mesh visible={avoidCircle}>
         <sphereGeometry args={[avoidRadius, 32]} />
         <meshBasicMaterial color={"blue"} wireframe />
+      </mesh>
+      <mesh visible={cohesionCircle}>
+        <sphereGeometry args={[cohesionRadius, 32]} />
+        <meshBasicMaterial color={"yellow"} wireframe />
       </mesh>
     </group>
   );
